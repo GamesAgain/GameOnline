@@ -12,7 +12,8 @@ public final class GameRules {
     public static final long NOTE_TRAVEL_TIME_MS = 2000L;
     public static final long GAME_DURATION_MS = 60000L;
     public static final long GAME_COUNTDOWN_MS = 3000L;
-    public static final long MISS_WINDOW_MS = 420L;
+    public static final long MISS_WINDOW_MS = 450L;
+    public static final long LATENCY_GRACE_MS = 30L;
 
     public static int calculateScore(Judgement judgement, int combo) {
         int base = judgement.getBaseScore();
@@ -24,7 +25,8 @@ public final class GameRules {
     }
 
     public static Judgement judgementForDelta(long deltaMillis) {
-        double deltaSeconds = Math.abs(deltaMillis) / 1000.0;
+        long adjustedDeltaMillis = Math.max(0L, Math.abs(deltaMillis) - LATENCY_GRACE_MS);
+        double deltaSeconds = adjustedDeltaMillis / 1000.0;
         if (deltaSeconds <= Judgement.PERFECT.getThresholdSeconds()) {
             return Judgement.PERFECT;
         }
