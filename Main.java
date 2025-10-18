@@ -1,4 +1,7 @@
+
 import com.gameonline.client.GameClientLauncher;
+
+
 
 /**
  * Entry point for the rhythm game client. Usage:
