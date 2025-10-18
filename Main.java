@@ -12,7 +12,7 @@ public final class Main {
     }
 
     public static void main(String[] args) {
-        String host = args.length > 0 ? args[0] : "127.0.0.1";
+        String host = args.length > 0 ? args[0] : null;
         int port = args.length > 1 ? Integer.parseInt(args[1]) : 5000;
         String playerName = args.length > 2 ? args[2] : "Player" + (int) (Math.random() * 1000);
         GameClientLauncher.launch(host, port, playerName);
