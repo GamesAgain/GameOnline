@@ -14,6 +14,7 @@ import javax.swing.JComponent;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.KeyStroke;
 import javax.swing.SwingUtilities;
 import java.awt.BorderLayout;
 import java.awt.CardLayout;
@@ -37,6 +38,7 @@ public final class GameClientFrame extends JFrame implements GameClientListener 
 
     private int playerId;
     private Lane assignedLane;
+    private boolean hitKeyPressed;
 
     public GameClientFrame(GameClient client) {
         super("Rhythm Arena Client");
@@ -68,7 +70,7 @@ public final class GameClientFrame extends JFrame implements GameClientListener 
         this.assignedLane = lane;
         lobbyPanel.updatePlayers(lobby, requiredPlayers);
         layout.show(container, "lobby");
-        configureKeyBindings(lane);
+        configureKeyBindings();
         setTitle("Rhythm Arena - Lane " + lane + " (Player " + playerId + ")");
     }
 
@@ -113,19 +115,25 @@ public final class GameClientFrame extends JFrame implements GameClientListener 
                 "Player " + playerId + " disconnected.", "Connection", JOptionPane.WARNING_MESSAGE));
     }
 
-    private void configureKeyBindings(Lane lane) {
-        int keyCode = switch (lane) {
-            case BLUE -> KeyEvent.VK_A;
-            case YELLOW -> KeyEvent.VK_S;
-            case RED -> KeyEvent.VK_D;
-        };
+    private void configureKeyBindings() {
+        hitKeyPressed = false;
         InputMap inputMap = container.getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW);
         ActionMap actionMap = container.getActionMap();
-        inputMap.put(javax.swing.KeyStroke.getKeyStroke(keyCode, 0, false), "hit");
-        actionMap.put("hit", new AbstractAction() {
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0, false), "hit-press");
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0, true), "hit-release");
+        actionMap.put("hit-press", new AbstractAction() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                client.sendLaneHit();
+                if (!hitKeyPressed) {
+                    hitKeyPressed = true;
+                    client.sendLaneHit();
+                }
+            }
+        });
+        actionMap.put("hit-release", new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                hitKeyPressed = false;
             }
         });
     }

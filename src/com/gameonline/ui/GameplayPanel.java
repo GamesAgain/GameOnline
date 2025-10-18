@@ -204,7 +204,7 @@ public final class GameplayPanel extends JPanel {
         }
 
         g2d.setFont(getFont().deriveFont(Font.PLAIN, 16f));
-        String keyHint = "Press " + keyForLane(playerLane) + " to hit notes on your lane.";
+        String keyHint = "Press " + keyForLane() + " to hit notes on your lane.";
         int textWidth = g2d.getFontMetrics().stringWidth(keyHint);
         g2d.drawString(keyHint, (width - textWidth) / 2, height - 40);
 
@@ -224,12 +224,8 @@ public final class GameplayPanel extends JPanel {
         return null;
     }
 
-    private String keyForLane(Lane lane) {
-        return switch (lane) {
-            case BLUE -> "A";
-            case YELLOW -> "S";
-            case RED -> "D";
-        };
+    private String keyForLane() {
+        return "SPACEBAR";
     }
 
     private void drawTimingGuide(Graphics2D g2d, Lane lane, int x, int targetY) {
