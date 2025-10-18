@@ -24,8 +24,11 @@ import java.util.Map;
 public final class GameplayPanel extends JPanel {
     private static final int LANE_WIDTH = 160;
     private static final int LANE_GAP = 20;
-    private static final int NOTE_HEIGHT = 30;
-    private static final int DEAD_ZONE_HEIGHT = 14;
+    private static final int NOTE_HEIGHT = 36;
+    private static final int DEAD_ZONE_HEIGHT = 36;
+    private static final int HIT_GUIDE_LINE_THICKNESS = 4;
+    private static final Color PLAYER_LANE_OVERLAY = new Color(255, 255, 255, 45);
+    private static final Color OTHER_LANE_OVERLAY = new Color(255, 255, 255, 20);
 
     private final Timer repaintTimer;
     private final Map<Integer, PlayerScore> scores = new HashMap<>();
@@ -35,6 +38,7 @@ public final class GameplayPanel extends JPanel {
     private long songDurationMillis;
     private Lane playerLane = Lane.BLUE;
     private int localPlayerId = -1;
+    private String localPlayerName = "";
     private String judgementMessage = "";
     private long judgementExpireTime;
 
@@ -58,6 +62,9 @@ public final class GameplayPanel extends JPanel {
         this.scores.clear();
         for (PlayerScore score : scores) {
             this.scores.put(score.getInfo().getId(), score);
+            if (score.getInfo().getId() == localPlayerId) {
+                this.localPlayerName = score.getInfo().getName();
+            }
         }
         repaint();
     }
@@ -107,6 +114,8 @@ public final class GameplayPanel extends JPanel {
             int x = startX + index * (LANE_WIDTH + LANE_GAP);
             g2d.setColor(new Color(40, 40, 40));
             g2d.fillRoundRect(x, topMargin, LANE_WIDTH, deadZoneY - topMargin + DEAD_ZONE_HEIGHT, 16, 16);
+            g2d.setColor(lane == playerLane ? PLAYER_LANE_OVERLAY : OTHER_LANE_OVERLAY);
+            g2d.fillRoundRect(x, topMargin, LANE_WIDTH, deadZoneY - topMargin + DEAD_ZONE_HEIGHT, 16, 16);
             g2d.setColor(lane.getColor());
             if (lane == playerLane) {
                 g2d.setStroke(new BasicStroke(4f));
@@ -115,8 +124,7 @@ public final class GameplayPanel extends JPanel {
             }
             g2d.drawRoundRect(x, topMargin, LANE_WIDTH, deadZoneY - topMargin + DEAD_ZONE_HEIGHT, 16, 16);
 
-            g2d.setColor(lane.getColor());
-            g2d.fillRect(x, deadZoneY, LANE_WIDTH, DEAD_ZONE_HEIGHT);
+            drawTimingGuide(g2d, lane, x, deadZoneY);
         }
 
         drawNotes(g2d, startX, topMargin, deadZoneY);
@@ -143,14 +151,26 @@ public final class GameplayPanel extends JPanel {
             int x = startX + laneIndex * (LANE_WIDTH + LANE_GAP);
             int y = (int) (topMargin + progress * (deadZoneY - topMargin));
             g2d.setColor(note.getLane().getColor());
-            g2d.fillRoundRect(x + 10, y - NOTE_HEIGHT / 2, LANE_WIDTH - 20, NOTE_HEIGHT, 12, 12);
+            g2d.fillRoundRect(x + 12, y - NOTE_HEIGHT / 2, LANE_WIDTH - 24, NOTE_HEIGHT, 16, 16);
         }
     }
 
     private void drawHud(Graphics2D g2d, int width, int height, int deadZoneY) {
         g2d.setColor(Color.WHITE);
+        g2d.setFont(getFont().deriveFont(Font.BOLD, 20f));
+        String bannerText = localPlayerName.isEmpty()
+                ? "You are playing lane " + playerLane.name()
+                : localPlayerName + " - lane " + playerLane.name();
+        int bannerWidth = g2d.getFontMetrics().stringWidth(bannerText) + 24;
+        int bannerHeight = g2d.getFontMetrics().getHeight() + 12;
+        int bannerX = Math.max(20, (width - bannerWidth) / 2);
+        g2d.setColor(new Color(0, 0, 0, 160));
+        g2d.fillRoundRect(bannerX, 16, bannerWidth, bannerHeight, 20, 20);
+        g2d.setColor(Color.WHITE);
+        g2d.drawString(bannerText, bannerX + 12, 16 + g2d.getFontMetrics().getAscent() + 2);
+
         g2d.setFont(getFont().deriveFont(Font.BOLD, 18f));
-        int y = 30;
+        int y = 60 + bannerHeight;
         for (Lane lane : Lane.values()) {
             PlayerScore score = findScoreForLane(lane);
             if (score == null) {
@@ -159,8 +179,18 @@ public final class GameplayPanel extends JPanel {
             String text = String.format("%s | Score: %d | Combo: %d | Max: %d | %s",
                     score.getInfo().getName(), score.getScore(), score.getCombo(), score.getMaxCombo(),
                     score.getLastJudgement() == null ? "" : score.getLastJudgement());
-            g2d.drawString(text, 40, y);
-            y += 24;
+            int textWidth = g2d.getFontMetrics().stringWidth(text);
+            int textX = 40;
+            if (lane == playerLane) {
+                g2d.setColor(new Color(255, 255, 255, 40));
+                g2d.fillRoundRect(textX - 16, y - g2d.getFontMetrics().getAscent(), textWidth + 32,
+                        g2d.getFontMetrics().getHeight() + 6, 18, 18);
+                g2d.setColor(Color.WHITE);
+            } else {
+                g2d.setColor(new Color(220, 220, 220));
+            }
+            g2d.drawString(text, textX, y);
+            y += 28;
         }
 
         if (!judgementMessage.isEmpty()) {
@@ -200,6 +230,28 @@ public final class GameplayPanel extends JPanel {
             case YELLOW -> "S";
             case RED -> "D";
         };
+    }
+
+    private void drawTimingGuide(Graphics2D g2d, Lane lane, int x, int targetY) {
+        int guideTop = targetY - DEAD_ZONE_HEIGHT / 2;
+        int guideHeight = DEAD_ZONE_HEIGHT;
+        Color laneColor = lane.getColor();
+        Color fillColor = new Color(laneColor.getRed(), laneColor.getGreen(), laneColor.getBlue(),
+                lane == playerLane ? 160 : 120);
+        g2d.setColor(fillColor);
+        g2d.fillRoundRect(x + 8, guideTop, LANE_WIDTH - 16, guideHeight, 18, 18);
+
+        g2d.setStroke(new BasicStroke(HIT_GUIDE_LINE_THICKNESS));
+        g2d.setColor(Color.WHITE);
+        g2d.drawLine(x + 12, targetY, x + LANE_WIDTH - 12, targetY);
+
+        if (lane == playerLane) {
+            g2d.setFont(getFont().deriveFont(Font.BOLD, 16f));
+            String hint = "HIT!";
+            int hintWidth = g2d.getFontMetrics().stringWidth(hint);
+            g2d.drawString(hint, x + (LANE_WIDTH - hintWidth) / 2, guideTop - 8);
+        }
+        g2d.setStroke(new BasicStroke(1f));
     }
 
     private void drawCenteredText(Graphics2D g2d, String text, int width, int height) {

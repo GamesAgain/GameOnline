@@ -12,7 +12,7 @@ public final class GameRules {
     public static final long NOTE_TRAVEL_TIME_MS = 2000L;
     public static final long GAME_DURATION_MS = 60000L;
     public static final long GAME_COUNTDOWN_MS = 3000L;
-    public static final long MISS_WINDOW_MS = 300L;
+    public static final long MISS_WINDOW_MS = 420L;
 
     public static int calculateScore(Judgement judgement, int combo) {
         int base = judgement.getBaseScore();

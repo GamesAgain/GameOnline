@@ -25,4 +25,6 @@ public interface GameClientListener {
     void onGameFinished(List<PlayerScore> finalScores);
 
     void onPlayerLeft(int playerId);
+
+    void onReplayStatus(int readyPlayers, int totalPlayers);
 }

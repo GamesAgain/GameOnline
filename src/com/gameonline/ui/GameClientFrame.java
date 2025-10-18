@@ -56,6 +56,8 @@ public final class GameClientFrame extends JFrame implements GameClientListener 
         container.add(resultPanel, "result");
         add(container, BorderLayout.CENTER);
 
+        resultPanel.setPlayAgainAction(() -> client.requestReplay());
+
         pack();
         setLocationRelativeTo(null);
     }
@@ -98,6 +100,11 @@ public final class GameClientFrame extends JFrame implements GameClientListener 
         gameplayPanel.updateScores(finalScores);
         resultPanel.displayResults(finalScores);
         layout.show(container, "result");
+    }
+
+    @Override
+    public void onReplayStatus(int readyPlayers, int totalPlayers) {
+        resultPanel.updateReplayStatus(readyPlayers, totalPlayers);
     }
 
     @Override
