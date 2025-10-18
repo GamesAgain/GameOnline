@@ -5,6 +5,7 @@ import com.gameonline.model.NoteData;
 import com.gameonline.model.PlayerScore;
 import com.gameonline.util.GameRules;
 
+import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 import java.awt.BasicStroke;
@@ -12,7 +13,10 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.RenderingHints;
+import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,11 +31,13 @@ public final class GameplayPanel extends JPanel {
     private static final int NOTE_HEIGHT = 36;
     private static final int DEAD_ZONE_HEIGHT = 36;
     private static final int HIT_GUIDE_LINE_THICKNESS = 4;
-    private static final Color PLAYER_LANE_OVERLAY = new Color(255, 255, 255, 45);
-    private static final Color OTHER_LANE_OVERLAY = new Color(255, 255, 255, 20);
+    private static final Color LANE_BACKGROUND = new Color(0, 0, 0, 160);
+    private static final Color PLAYER_LANE_OVERLAY = new Color(255, 255, 255, 40);
+    private static final Color OTHER_LANE_OVERLAY = new Color(255, 255, 255, 18);
 
     private final Timer repaintTimer;
     private final Map<Integer, PlayerScore> scores = new HashMap<>();
+    private final Image backgroundImage;
     private List<NoteData> chart = new ArrayList<>();
     private long startTimeMillis;
     private long countdownMillis;
@@ -44,6 +50,7 @@ public final class GameplayPanel extends JPanel {
 
     public GameplayPanel() {
         setBackground(Color.BLACK);
+        backgroundImage = loadBackgroundImage();
         repaintTimer = new Timer(16, e -> repaint());
         repaintTimer.start();
     }
@@ -90,6 +97,10 @@ public final class GameplayPanel extends JPanel {
 
         int width = getWidth();
         int height = getHeight();
+
+        if (backgroundImage != null) {
+            g2d.drawImage(backgroundImage, 0, 0, width, height, this);
+        }
         int lanes = Lane.values().length;
         int totalWidth = lanes * LANE_WIDTH + (lanes - 1) * LANE_GAP;
         int startX = (width - totalWidth) / 2;
@@ -112,7 +123,7 @@ public final class GameplayPanel extends JPanel {
         for (Lane lane : Lane.values()) {
             int index = lane.getIndex();
             int x = startX + index * (LANE_WIDTH + LANE_GAP);
-            g2d.setColor(new Color(40, 40, 40));
+            g2d.setColor(LANE_BACKGROUND);
             g2d.fillRoundRect(x, topMargin, LANE_WIDTH, deadZoneY - topMargin + DEAD_ZONE_HEIGHT, 16, 16);
             g2d.setColor(lane == playerLane ? PLAYER_LANE_OVERLAY : OTHER_LANE_OVERLAY);
             g2d.fillRoundRect(x, topMargin, LANE_WIDTH, deadZoneY - topMargin + DEAD_ZONE_HEIGHT, 16, 16);
@@ -256,5 +267,18 @@ public final class GameplayPanel extends JPanel {
         int textWidth = g2d.getFontMetrics().stringWidth(text);
         int textHeight = g2d.getFontMetrics().getAscent();
         g2d.drawString(text, (width - textWidth) / 2, (height + textHeight) / 2);
+    }
+
+    private Image loadBackgroundImage() {
+        URL resource = getClass().getResource("/com/gameonline/assets/images/bg.png");
+        if (resource == null) {
+            return null;
+        }
+        try {
+            return ImageIO.read(resource);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            return null;
+        }
     }
 }
