@@ -15,6 +15,7 @@ import com.gameonline.network.messages.LobbyUpdateMessage;
 import com.gameonline.network.messages.Message;
 import com.gameonline.network.messages.PlayerLeftMessage;
 import com.gameonline.network.messages.ReplayStatusMessage;
+import com.gameonline.network.messages.ServerInfoResponseMessage;
 import com.gameonline.network.messages.StartGameMessage;
 import com.gameonline.util.GameRules;
 import com.gameonline.util.NoteChartGenerator;
@@ -37,6 +38,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class GameServer {
     private final int port;
     private final int requiredPlayers;
+    private final String serverName;
 
     private final Map<Integer, ClientHandler> clients = new ConcurrentHashMap<>();
     private final Map<Integer, PlayerState> players = new LinkedHashMap<>();
@@ -49,6 +51,7 @@ public final class GameServer {
     public GameServer(int port, int requiredPlayers) {
         this.port = port;
         this.requiredPlayers = Math.max(1, requiredPlayers);
+        this.serverName = "Rhythm Arena Server";
     }
 
     public void start() throws IOException {
@@ -184,12 +187,17 @@ public final class GameServer {
         broadcastReplayStatus();
     }
 
-    private List<PlayerInfo> lobbySnapshot() {
+    List<PlayerInfo> lobbySnapshot() {
         List<PlayerInfo> info = new ArrayList<>();
         for (PlayerState state : players.values()) {
             info.add(new PlayerInfo(state.getId(), state.getName(), state.getLane()));
         }
         return new ArrayList<>(info);
+    }
+
+    void sendDiscoveryResponse(ClientHandler handler) {
+        handler.send(new ServerInfoResponseMessage(serverName, players.size(), requiredPlayers, gameStarted,
+                lobbySnapshot()));
     }
 
     private void broadcastReplayStatus() {

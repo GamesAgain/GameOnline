@@ -5,6 +5,7 @@ import com.gameonline.network.messages.JoinRequestMessage;
 import com.gameonline.network.messages.Message;
 import com.gameonline.network.messages.PlayAgainRequestMessage;
 import com.gameonline.network.messages.PlayerInputMessage;
+import com.gameonline.network.messages.ServerInfoRequestMessage;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -39,7 +40,9 @@ final class ClientHandler implements Runnable {
     @Override
     public void run() {
         try {
-            handleJoin();
+            if (!handleInitialHandshake()) {
+                return;
+            }
             while (running) {
                 Message message = (Message) input.readObject();
                 if (message instanceof PlayerInputMessage inputMessage) {
@@ -59,12 +62,17 @@ final class ClientHandler implements Runnable {
         }
     }
 
-    private void handleJoin() throws IOException, ClassNotFoundException {
+    private boolean handleInitialHandshake() throws IOException, ClassNotFoundException {
         Message first = (Message) input.readObject();
+        if (first instanceof ServerInfoRequestMessage) {
+            server.sendDiscoveryResponse(this);
+            return false;
+        }
         if (!(first instanceof JoinRequestMessage join)) {
             throw new IOException("Expected JoinRequestMessage but received " + first);
         }
         this.playerId = server.registerPlayer(this, join.getPlayerName());
+        return true;
     }
 
     void send(Message message) {
