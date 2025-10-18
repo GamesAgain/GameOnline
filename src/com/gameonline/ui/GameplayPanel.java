@@ -8,8 +8,10 @@ import com.gameonline.util.GameRules;
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 import javax.swing.Timer;
+import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.Composite;
 import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
@@ -34,6 +36,7 @@ public final class GameplayPanel extends JPanel {
     private static final Color LANE_BACKGROUND = new Color(0, 0, 0, 160);
     private static final Color PLAYER_LANE_OVERLAY = new Color(255, 255, 255, 40);
     private static final Color OTHER_LANE_OVERLAY = new Color(255, 255, 255, 18);
+    private static final long HIT_EFFECT_DURATION_MS = 220L;
 
     private final Timer repaintTimer;
     private final Map<Integer, PlayerScore> scores = new HashMap<>();
@@ -47,6 +50,7 @@ public final class GameplayPanel extends JPanel {
     private String localPlayerName = "";
     private String judgementMessage = "";
     private long judgementExpireTime;
+    private long hitEffectStartTime = -1L;
 
     public GameplayPanel() {
         setBackground(Color.BLACK);
@@ -85,6 +89,7 @@ public final class GameplayPanel extends JPanel {
         if (playerId == localPlayerId) {
             this.judgementMessage = judgement + (combo > 0 ? " x" + combo : "");
             this.judgementExpireTime = System.currentTimeMillis() + 1200L;
+            this.hitEffectStartTime = System.currentTimeMillis();
         }
         repaint();
     }
@@ -136,6 +141,9 @@ public final class GameplayPanel extends JPanel {
             g2d.drawRoundRect(x, topMargin, LANE_WIDTH, deadZoneY - topMargin + DEAD_ZONE_HEIGHT, 16, 16);
 
             drawTimingGuide(g2d, lane, x, deadZoneY);
+            if (lane == playerLane) {
+                drawHitEffect(g2d, x, deadZoneY, now);
+            }
         }
 
         drawNotes(g2d, startX, topMargin, deadZoneY);
@@ -164,6 +172,40 @@ public final class GameplayPanel extends JPanel {
             g2d.setColor(note.getLane().getColor());
             g2d.fillRoundRect(x + 12, y - NOTE_HEIGHT / 2, LANE_WIDTH - 24, NOTE_HEIGHT, 16, 16);
         }
+    }
+
+    private void drawHitEffect(Graphics2D g2d, int laneX, int deadZoneY, long now) {
+        if (hitEffectStartTime < 0L) {
+            return;
+        }
+        long elapsed = now - hitEffectStartTime;
+        if (elapsed < 0L) {
+            return;
+        }
+        if (elapsed > HIT_EFFECT_DURATION_MS) {
+            hitEffectStartTime = -1L;
+            return;
+        }
+
+        double progress = (double) elapsed / HIT_EFFECT_DURATION_MS;
+        double expansion = 28.0 * progress;
+        int effectWidth = (int) (LANE_WIDTH - 16 + expansion);
+        int effectHeight = (int) (DEAD_ZONE_HEIGHT + expansion);
+        int effectX = laneX + (LANE_WIDTH - effectWidth) / 2;
+        int effectY = deadZoneY - effectHeight / 2;
+
+        Composite oldComposite = g2d.getComposite();
+        float alpha = (float) (0.7 * (1.0 - progress));
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, Math.max(0f, alpha)));
+        g2d.setColor(playerLane.getColor());
+        g2d.fillRoundRect(effectX, effectY, effectWidth, effectHeight, 24, 24);
+
+        g2d.setColor(Color.WHITE);
+        g2d.setStroke(new BasicStroke(3f));
+        g2d.drawRoundRect(effectX, effectY, effectWidth, effectHeight, 24, 24);
+        g2d.setStroke(new BasicStroke(1f));
+
+        g2d.setComposite(oldComposite);
     }
 
     private void drawHud(Graphics2D g2d, int width, int height, int deadZoneY) {
