@@ -3,6 +3,7 @@ package com.gameonline.server;
 import com.gameonline.engine.PlayerInput;
 import com.gameonline.network.messages.JoinRequestMessage;
 import com.gameonline.network.messages.Message;
+import com.gameonline.network.messages.PlayAgainRequestMessage;
 import com.gameonline.network.messages.PlayerInputMessage;
 
 import java.io.EOFException;
@@ -43,6 +44,8 @@ final class ClientHandler implements Runnable {
                 Message message = (Message) input.readObject();
                 if (message instanceof PlayerInputMessage inputMessage) {
                     server.onPlayerInput(new PlayerInput(inputMessage.getPlayerId(), inputMessage.getPressTimeMillis()));
+                } else if (message instanceof PlayAgainRequestMessage) {
+                    server.onPlayAgainRequest(playerId);
                 }
             }
         } catch (EOFException eof) {

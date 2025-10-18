@@ -11,8 +11,10 @@ import com.gameonline.network.messages.JoinAcceptedMessage;
 import com.gameonline.network.messages.JoinRequestMessage;
 import com.gameonline.network.messages.LobbyUpdateMessage;
 import com.gameonline.network.messages.Message;
+import com.gameonline.network.messages.PlayAgainRequestMessage;
 import com.gameonline.network.messages.PlayerInputMessage;
 import com.gameonline.network.messages.PlayerLeftMessage;
+import com.gameonline.network.messages.ReplayStatusMessage;
 import com.gameonline.network.messages.StartGameMessage;
 
 import javax.swing.SwingUtilities;
@@ -120,6 +122,12 @@ public final class GameClient implements AutoCloseable {
             if (current != null) {
                 SwingUtilities.invokeLater(() -> current.onGameFinished(over.getFinalScores()));
             }
+        } else if (message instanceof ReplayStatusMessage replay) {
+            GameClientListener current = listener;
+            if (current != null) {
+                SwingUtilities.invokeLater(() -> current.onReplayStatus(replay.getReadyPlayers(),
+                        replay.getTotalPlayers()));
+            }
         } else if (message instanceof PlayerLeftMessage left) {
             GameClientListener current = listener;
             if (current != null) {
@@ -134,6 +142,13 @@ public final class GameClient implements AutoCloseable {
         }
         long serverTimeEstimate = System.currentTimeMillis() + timeOffsetMillis;
         send(new PlayerInputMessage(playerId, serverTimeEstimate));
+    }
+
+    public void requestReplay() {
+        if (!running) {
+            return;
+        }
+        send(new PlayAgainRequestMessage());
     }
 
     private void send(Message message) {

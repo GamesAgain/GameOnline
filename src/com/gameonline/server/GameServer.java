@@ -14,6 +14,7 @@ import com.gameonline.network.messages.JoinAcceptedMessage;
 import com.gameonline.network.messages.LobbyUpdateMessage;
 import com.gameonline.network.messages.Message;
 import com.gameonline.network.messages.PlayerLeftMessage;
+import com.gameonline.network.messages.ReplayStatusMessage;
 import com.gameonline.network.messages.StartGameMessage;
 import com.gameonline.util.GameRules;
 import com.gameonline.util.NoteChartGenerator;
@@ -26,6 +27,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -41,6 +43,8 @@ public final class GameServer {
     private final AtomicInteger idGenerator = new AtomicInteger(1);
     private volatile boolean gameStarted;
     private GameEngine engine;
+    private final Set<Integer> replayReady = ConcurrentHashMap.newKeySet();
+    private volatile boolean acceptingReplayVotes;
 
     public GameServer(int port, int requiredPlayers) {
         this.port = port;
@@ -82,7 +86,13 @@ public final class GameServer {
         handler.send(new JoinAcceptedMessage(playerId, lane, snapshot, requiredPlayers));
         broadcast(new LobbyUpdateMessage(snapshot, requiredPlayers));
         log("Player joined: " + playerName + " (lane " + lane + ")");
-        if (players.size() >= requiredPlayers) {
+        if (acceptingReplayVotes) {
+            replayReady.add(playerId);
+            broadcastReplayStatus();
+            if (replayReady.size() >= players.size() && players.size() >= requiredPlayers) {
+                startGame();
+            }
+        } else if (players.size() >= requiredPlayers) {
             startGame();
         }
         return playerId;
@@ -106,6 +116,9 @@ public final class GameServer {
             return;
         }
         this.gameStarted = true;
+        this.acceptingReplayVotes = false;
+        replayReady.clear();
+        resetPlayerStates();
         List<NoteData> chart = NoteChartGenerator.generate(GameRules.GAME_DURATION_MS);
         long startTime = System.currentTimeMillis() + GameRules.GAME_COUNTDOWN_MS;
         engine = new GameEngine(new HashMap<>(players), chart, this::broadcastHitResult,
@@ -121,16 +134,29 @@ public final class GameServer {
         }
     }
 
+    void onPlayAgainRequest(int playerId) {
+        if (!acceptingReplayVotes || !players.containsKey(playerId)) {
+            return;
+        }
+        replayReady.add(playerId);
+        broadcastReplayStatus();
+        if (replayReady.size() >= players.size() && players.size() >= requiredPlayers) {
+            startGame();
+        }
+    }
+
     void onClientDisconnected(int playerId) {
         if (playerId <= 0) {
             return;
         }
         clients.remove(playerId);
         PlayerState removed = players.remove(playerId);
+        replayReady.remove(playerId);
         if (removed != null) {
             broadcast(new PlayerLeftMessage(playerId));
             broadcast(new LobbyUpdateMessage(lobbySnapshot(), requiredPlayers));
             log("Player disconnected: " + removed.getName());
+            broadcastReplayStatus();
         }
     }
 
@@ -151,6 +177,11 @@ public final class GameServer {
     private void handleGameFinished(List<PlayerScore> finalScores) {
         broadcast(new GameOverMessage(finalScores));
         log("Game finished");
+        engine = null;
+        gameStarted = false;
+        acceptingReplayVotes = true;
+        replayReady.clear();
+        broadcastReplayStatus();
     }
 
     private List<PlayerInfo> lobbySnapshot() {
@@ -159,6 +190,18 @@ public final class GameServer {
             info.add(new PlayerInfo(state.getId(), state.getName(), state.getLane()));
         }
         return new ArrayList<>(info);
+    }
+
+    private void broadcastReplayStatus() {
+        if (!players.isEmpty()) {
+            broadcast(new ReplayStatusMessage(replayReady.size(), players.size()));
+        }
+    }
+
+    private void resetPlayerStates() {
+        for (PlayerState state : players.values()) {
+            state.resetForNewSong();
+        }
     }
 
     void log(String message) {

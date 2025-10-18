@@ -72,4 +72,11 @@ public final class PlayerState {
     public PlayerScore toSnapshot() {
         return new PlayerScore(new PlayerInfo(id, name, lane), score, combo, maxCombo, lastJudgement);
     }
+
+    public void resetForNewSong() {
+        score = 0;
+        combo = 0;
+        maxCombo = 0;
+        lastJudgement = "";
+    }
 }
