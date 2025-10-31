@@ -1,6 +1,8 @@
 package com.gameonline.ui;
 
+import com.gameonline.model.Judgement;
 import com.gameonline.model.Lane;
+import com.gameonline.model.LocalHitData;
 import com.gameonline.model.NoteData;
 import com.gameonline.model.PlayerScore;
 import com.gameonline.util.GameRules;
@@ -20,9 +22,11 @@ import java.awt.RenderingHints;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Renders the active gameplay view and note lanes.
@@ -42,6 +46,7 @@ public final class GameplayPanel extends JPanel {
     private final Map<Integer, PlayerScore> scores = new HashMap<>();
     private final Image backgroundImage;
     private List<NoteData> chart = new ArrayList<>();
+    private final Set<Integer> locallyResolvedNotes = new HashSet<>();
     private long startTimeMillis;
     private long countdownMillis;
     private long songDurationMillis;
@@ -67,6 +72,9 @@ public final class GameplayPanel extends JPanel {
         this.chart = new ArrayList<>(chart);
         this.playerLane = playerLane;
         this.localPlayerId = localPlayerId;
+        this.locallyResolvedNotes.clear();
+        this.judgementMessage = "";
+        this.hitEffectStartTime = -1L;
     }
 
     public void updateScores(List<PlayerScore> scores) {
@@ -80,18 +88,55 @@ public final class GameplayPanel extends JPanel {
         repaint();
     }
 
-    public void registerJudgement(int playerId, String judgement, int score, int combo) {
+    public void registerJudgement(int playerId, int noteId, String judgement, int score, int combo) {
         PlayerScore existing = scores.get(playerId);
         if (existing != null) {
             scores.put(playerId, new PlayerScore(existing.getInfo(), score, combo,
                     Math.max(existing.getMaxCombo(), combo), judgement));
         }
         if (playerId == localPlayerId) {
+            if (noteId >= 0) {
+                locallyResolvedNotes.add(noteId);
+            }
             this.judgementMessage = judgement + (combo > 0 ? " x" + combo : "");
             this.judgementExpireTime = System.currentTimeMillis() + 1200L;
             this.hitEffectStartTime = System.currentTimeMillis();
         }
         repaint();
+    }
+
+    public LocalHitData evaluateLocalHit(long clientPressTimeMillis) {
+        if (chart == null || startTimeMillis == 0L) {
+            return LocalHitData.miss(clientPressTimeMillis);
+        }
+        long elapsed = clientPressTimeMillis - startTimeMillis;
+        NoteData best = null;
+        long bestDelta = Long.MAX_VALUE;
+        for (NoteData note : chart) {
+            if (note.getLane() != playerLane) {
+                continue;
+            }
+            if (locallyResolvedNotes.contains(note.getId())) {
+                continue;
+            }
+            long delta = elapsed - note.getHitTimeMillis();
+            long absDelta = Math.abs(delta);
+            if (absDelta < bestDelta) {
+                best = note;
+                bestDelta = absDelta;
+            }
+        }
+        if (best == null || bestDelta > GameRules.MISS_WINDOW_MS) {
+            return LocalHitData.miss(clientPressTimeMillis);
+        }
+        long deltaMillis = elapsed - best.getHitTimeMillis();
+        Judgement judgement = GameRules.judgementForDelta(deltaMillis);
+        if (judgement != Judgement.MISS) {
+            locallyResolvedNotes.add(best.getId());
+            hitEffectStartTime = clientPressTimeMillis;
+        }
+        repaint();
+        return new LocalHitData(best.getId(), clientPressTimeMillis, deltaMillis, judgement);
     }
 
     @Override
@@ -157,6 +202,9 @@ public final class GameplayPanel extends JPanel {
         long now = System.currentTimeMillis();
         long elapsed = now - startTimeMillis;
         for (NoteData note : chart) {
+            if (locallyResolvedNotes.contains(note.getId()) && note.getLane() == playerLane) {
+                continue;
+            }
             long timeUntilHit = note.getHitTimeMillis() - elapsed;
             if (timeUntilHit > GameRules.NOTE_TRAVEL_TIME_MS) {
                 continue;

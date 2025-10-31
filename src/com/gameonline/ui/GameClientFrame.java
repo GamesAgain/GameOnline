@@ -3,6 +3,7 @@ package com.gameonline.ui;
 import com.gameonline.client.GameClient;
 import com.gameonline.client.GameClientListener;
 import com.gameonline.model.Lane;
+import com.gameonline.model.LocalHitData;
 import com.gameonline.model.NoteData;
 import com.gameonline.model.PlayerInfo;
 import com.gameonline.model.PlayerScore;
@@ -88,8 +89,8 @@ public final class GameClientFrame extends JFrame implements GameClientListener 
     }
 
     @Override
-    public void onHitResult(int playerId, String judgement, int score, int combo) {
-        gameplayPanel.registerJudgement(playerId, judgement, score, combo);
+    public void onHitResult(int playerId, int noteId, String judgement, int score, int combo) {
+        gameplayPanel.registerJudgement(playerId, noteId, judgement, score, combo);
     }
 
     @Override
@@ -126,7 +127,9 @@ public final class GameClientFrame extends JFrame implements GameClientListener 
             public void actionPerformed(ActionEvent e) {
                 if (!hitKeyPressed) {
                     hitKeyPressed = true;
-                    client.sendLaneHit();
+                    long pressTime = System.currentTimeMillis();
+                    LocalHitData localHit = gameplayPanel.evaluateLocalHit(pressTime);
+                    client.sendLaneHit(localHit);
                 }
             }
         });

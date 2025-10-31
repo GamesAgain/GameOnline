@@ -231,22 +231,34 @@ public interface Message extends Serializable {
          * Sent by clients whenever the assigned lane key is pressed.
          */
         public static final class PlayerInputMessage implements Message {
-            private static final long serialVersionUID = 1L;
+            private static final long serialVersionUID = 2L;
 
             private final int playerId;
+            private final int noteId;
             private final long pressTimeMillis;
+            private final long clientDeltaMillis;
 
-            public PlayerInputMessage(int playerId, long pressTimeMillis) {
+            public PlayerInputMessage(int playerId, int noteId, long pressTimeMillis, long clientDeltaMillis) {
                 this.playerId = playerId;
+                this.noteId = noteId;
                 this.pressTimeMillis = pressTimeMillis;
+                this.clientDeltaMillis = clientDeltaMillis;
             }
 
             public int getPlayerId() {
                 return playerId;
             }
 
+            public int getNoteId() {
+                return noteId;
+            }
+
             public long getPressTimeMillis() {
                 return pressTimeMillis;
+            }
+
+            public long getClientDeltaMillis() {
+                return clientDeltaMillis;
             }
         }
 

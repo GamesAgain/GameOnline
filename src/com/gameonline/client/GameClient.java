@@ -1,6 +1,7 @@
 package com.gameonline.client;
 
 import com.gameonline.model.Lane;
+import com.gameonline.model.LocalHitData;
 import com.gameonline.model.NoteData;
 import com.gameonline.model.PlayerInfo;
 import com.gameonline.model.PlayerScore;
@@ -109,8 +110,8 @@ public final class GameClient implements AutoCloseable {
         } else if (message instanceof HitResultMessage result) {
             GameClientListener current = listener;
             if (current != null) {
-                SwingUtilities.invokeLater(() -> current.onHitResult(result.getPlayerId(), result.getJudgement(),
-                        result.getNewScore(), result.getCombo()));
+                SwingUtilities.invokeLater(() -> current.onHitResult(result.getPlayerId(), result.getNoteId(),
+                        result.getJudgement(), result.getNewScore(), result.getCombo()));
             }
         } else if (message instanceof GameStateUpdateMessage update) {
             GameClientListener current = listener;
@@ -136,12 +137,15 @@ public final class GameClient implements AutoCloseable {
         }
     }
 
-    public void sendLaneHit() {
+    public void sendLaneHit(LocalHitData localHit) {
         if (!running) {
             return;
         }
         long serverTimeEstimate = System.currentTimeMillis() + timeOffsetMillis;
-        send(new PlayerInputMessage(playerId, serverTimeEstimate));
+        int noteId = localHit != null ? localHit.getNoteId() : LocalHitData.NO_NOTE_ID;
+        long clientDelta = (localHit != null && localHit.hasValidDelta()) ? localHit.getDeltaMillis()
+                : LocalHitData.INVALID_DELTA;
+        send(new PlayerInputMessage(playerId, noteId, serverTimeEstimate, clientDelta));
     }
 
     public void requestReplay() {

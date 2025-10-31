@@ -109,7 +109,7 @@ public final class GameEngine implements Runnable {
                 continue;
             }
 
-            ServerNote candidate = findCandidateNote(player.getLane(), pressTime);
+            ServerNote candidate = findCandidateNote(player.getLane(), pressTime, input.getNoteId());
             if (candidate == null) {
                 registerMiss(player, -1);
                 continue;
@@ -117,6 +117,12 @@ public final class GameEngine implements Runnable {
 
             long scheduledTime = startTimeMillis + candidate.getHitTimeMillis();
             long delta = pressTime - scheduledTime;
+            if (input.hasClientDelta()) {
+                long clientDelta = input.getClientDeltaMillis();
+                if (Math.abs(clientDelta) <= GameRules.MISS_WINDOW_MS) {
+                    delta = clientDelta;
+                }
+            }
             if (Math.abs(delta) > GameRules.MISS_WINDOW_MS) {
                 registerMiss(player, candidate.getId());
                 continue;
@@ -168,7 +174,19 @@ public final class GameEngine implements Runnable {
         return new ArrayList<>(snapshots);
     }
 
-    private ServerNote findCandidateNote(Lane lane, long pressTime) {
+    private ServerNote findCandidateNote(Lane lane, long pressTime, int suggestedNoteId) {
+        if (suggestedNoteId >= 0) {
+            for (ServerNote note : notes) {
+                if (note.getId() == suggestedNoteId && note.getLane() == lane && !note.isHit()
+                        && !note.isMissed()) {
+                    long scheduled = startTimeMillis + note.getHitTimeMillis();
+                    if (Math.abs(pressTime - scheduled) <= GameRules.MISS_WINDOW_MS) {
+                        return note;
+                    }
+                    break;
+                }
+            }
+        }
         ServerNote best = null;
         long bestDelta = Long.MAX_VALUE;
         for (ServerNote note : notes) {
