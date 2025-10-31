@@ -4,8 +4,8 @@ import com.gameonline.model.Judgement;
 import com.gameonline.model.Lane;
 import com.gameonline.model.NoteData;
 import com.gameonline.model.PlayerScore;
-import com.gameonline.network.messages.GameStateUpdateMessage;
-import com.gameonline.network.messages.HitResultMessage;
+import com.gameonline.network.messages.Message.Gameplay.GameStateUpdateMessage;
+import com.gameonline.network.messages.Message.Gameplay.HitResultMessage;
 import com.gameonline.util.GameRules;
 
 import java.util.ArrayList;

@@ -1,11 +1,11 @@
 package com.gameonline.server;
 
 import com.gameonline.engine.PlayerInput;
-import com.gameonline.network.messages.JoinRequestMessage;
 import com.gameonline.network.messages.Message;
-import com.gameonline.network.messages.PlayAgainRequestMessage;
-import com.gameonline.network.messages.PlayerInputMessage;
-import com.gameonline.network.messages.ServerInfoRequestMessage;
+import com.gameonline.network.messages.Message.Discovery.ServerInfoRequestMessage;
+import com.gameonline.network.messages.Message.Gameplay.PlayerInputMessage;
+import com.gameonline.network.messages.Message.Lobby.JoinRequestMessage;
+import com.gameonline.network.messages.Message.PostGame.PlayAgainRequestMessage;
 
 import java.io.EOFException;
 import java.io.IOException;
