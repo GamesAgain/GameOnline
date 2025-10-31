@@ -1,7 +1,7 @@
 package com.gameonline.client;
 
-import com.gameonline.network.messages.ServerInfoRequestMessage;
-import com.gameonline.network.messages.ServerInfoResponseMessage;
+import com.gameonline.network.messages.Message.Discovery.ServerInfoRequestMessage;
+import com.gameonline.network.messages.Message.Discovery.ServerInfoResponseMessage;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
