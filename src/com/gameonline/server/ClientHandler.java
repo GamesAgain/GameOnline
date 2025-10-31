@@ -46,7 +46,9 @@ final class ClientHandler implements Runnable {
             while (running) {
                 Message message = (Message) input.readObject();
                 if (message instanceof PlayerInputMessage inputMessage) {
-                    server.onPlayerInput(new PlayerInput(inputMessage.getPlayerId(), inputMessage.getPressTimeMillis()));
+                    server.onPlayerInput(new PlayerInput(inputMessage.getPlayerId(),
+                            inputMessage.getPressTimeMillis(), inputMessage.getNoteId(),
+                            inputMessage.getClientDeltaMillis()));
                 } else if (message instanceof PlayAgainRequestMessage) {
                     server.onPlayAgainRequest(playerId);
                 }

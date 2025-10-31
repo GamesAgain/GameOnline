@@ -18,7 +18,7 @@ public interface GameClientListener {
     void onGameStarting(long localStartTimeMillis, long countdownMillis, long songDurationMillis,
                         List<NoteData> chart);
 
-    void onHitResult(int playerId, String judgement, int score, int combo);
+    void onHitResult(int playerId, int noteId, String judgement, int score, int combo);
 
     void onGameState(List<PlayerScore> scores);
 
