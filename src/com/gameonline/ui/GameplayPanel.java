@@ -342,12 +342,6 @@ public final class GameplayPanel extends JPanel {
         g2d.setColor(Color.WHITE);
         g2d.drawLine(x + 12, targetY, x + LANE_WIDTH - 12, targetY);
 
-        if (lane == playerLane) {
-            g2d.setFont(getFont().deriveFont(Font.BOLD, 16f));
-            String hint = "HIT!";
-            int hintWidth = g2d.getFontMetrics().stringWidth(hint);
-            g2d.drawString(hint, x + (LANE_WIDTH - hintWidth) / 2, guideTop - 8);
-        }
         g2d.setStroke(new BasicStroke(1f));
     }
 
